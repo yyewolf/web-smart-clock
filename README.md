@@ -4,44 +4,53 @@ A Go-based smart clock web application with real-time audio streaming via WebRTC
 
 ## Features
 
-- 🕐 **Real-time Clock Display** - Client-side clock with live updating time and date
-- 🔊 **High-Quality Audio Streaming** - WebRTC-based streaming with Opus codec (48kHz stereo @ 128kbps)
-- 📱 **Touch-Optimized UI** - Swipeable 800x480 interface with gesture navigation
-- 💡 **Brightness Control** - Integrated device brightness control with multi-client sync
-- 🏠 **Home Assistant Integration** - HACS custom component with light entity and sensors
-- 🎵 **Snapcast Integration** - Built-in Snapcast client for multi-room audio synchronization
-- 🔄 **Auto-Reconnection** - Resilient WebSocket and WebRTC connections with automatic recovery
-- 🎯 **Low Latency** - <35ms end-to-end audio latency with optimized buffering
-- 🔇 **Silence Detection** - Automatic bandwidth saving when no audio is playing
-- 🐳 **Docker Support** - Fully containerized with multi-stage Alpine build
+**Real-time Clock Display**: Client-side clock with live updating time and date
+
+**High-Quality Audio Streaming**: WebRTC-based streaming with Opus codec (48kHz stereo @ 128kbps)
+
+**Touch-Optimized UI**: Swipeable 800x480 interface with gesture navigation
+
+**Brightness Control**: Integrated device brightness control with multi-client sync
+
+**Home Assistant Integration**: HACS custom component with light entity and sensors
+
+**Snapcast Integration**: Built-in Snapcast client for multi-room audio synchronization
+
+**Auto-Reconnection**: Resilient WebSocket and WebRTC connections with automatic recovery
+
+**Low Latency**: <35ms end-to-end audio latency with optimized buffering
+
+**Silence Detection**: Automatic bandwidth saving when no audio is playing
+
+**Docker Support**: Fully containerized with multi-stage Alpine build
 
 ## Architecture
 
 The application consists of:
 
-- **Go Backend** (`main.go`): HTTP/WebSocket server with WebRTC signaling, audio multiplexing, and brightness API
-- **Web Frontend** (`static/`): Touch-optimized HTML/CSS/JavaScript UI (800x480 fixed layout)
-- **Audio Pipeline**: PulseAudio parec → AudioMultiplexer → Opus encoding → WebRTC tracks
-- **Home Assistant Integration**: Custom HACS component for smart home control
-- **Brightness System**: WebviewKioskBrightnessInterface + server-side state sync
+**Go Backend** (`main.go`): HTTP/WebSocket server with WebRTC signaling, audio multiplexing, and brightness API
+
+**Web Frontend** (`static/`): Touch-optimized HTML/CSS/JavaScript UI (800x480 fixed layout)
+
+**Audio Pipeline**: PulseAudio parec → AudioMultiplexer → Opus encoding → WebRTC tracks
+
+**Home Assistant Integration**: Custom HACS component for smart home control
+
+**Brightness System**: WebviewKioskBrightnessInterface + server-side state sync
 
 ## Prerequisites
 
 ### Running with Docker (Recommended)
-- Docker
-- Docker Compose
-- PulseAudio server (for audio streaming)
+
+Docker, Docker Compose, and a PulseAudio server (for audio streaming)
 
 ### Running Locally
-- Go 1.21 or higher
-- Opus library (`libopus-dev` or `opus-devel`)
-- PulseAudio with `parec` command
-- Snapcast client (optional, for multi-room sync)
-- CGO enabled for Opus bindings
+
+Go 1.21 or higher, Opus library (`libopus-dev` or `opus-devel`), PulseAudio with `parec` command, Snapcast client (optional, for multi-room sync), and CGO enabled for Opus bindings
 
 ### For Home Assistant Integration
-- Home Assistant 2023.1 or higher
-- HACS (Home Assistant Community Store)
+
+Home Assistant 2023.1 or higher and HACS (Home Assistant Community Store)
 
 ## Quick Start
 
@@ -96,24 +105,21 @@ http://localhost:8080
 
 ### Environment Variables
 
-- `PORT` - HTTP server port (default: 8080)
-- `SNAPSERVER_HOST` - Snapcast server hostname (default: snapserver)
-- `SNAPSERVER_PORT` - Snapcast server port (default: 1704)
-- `PULSE_SERVER` - PulseAudio server address (default: unix:/run/pulse/native)
+`PORT`: HTTP server port (default: 8080)
+
+`SNAPSERVER_HOST`: Snapcast server hostname (default: snapserver)
+
+`SNAPSERVER_PORT`: Snapcast server port (default: 1704)
+
+`PULSE_SERVER`: PulseAudio server address (default: unix:/run/pulse/native)
 
 ### Docker Compose Configuration
 
-Edit `docker-compose.yml` to customize:
-- Port mappings
-- Snapcast server configuration
-- PulseAudio socket mounts
-- Volume mounts
+Edit `docker-compose.yml` to customize port mappings, Snapcast server configuration, PulseAudio socket mounts, and volume mounts.
 
 ### Display Configuration
 
-The UI is optimized for **800x480 touchscreen displays**. To run on a different resolution, modify:
-- `static/styles.css`: Update `.container` width/height
-- `static/index.html`: Update viewport meta tag
+The UI is optimized for **800x480 touchscreen displays**. To run on a different resolution, modify `static/styles.css` (update `.container` width/height) and `static/index.html` (update viewport meta tag).
 
 ## Project Structure
 
@@ -147,14 +153,17 @@ test-clock/
 
 ### HTTP Endpoints
 
-- `GET /` - Serves the web interface
-- `GET /api/snap/status` - Returns Snapclient status (running/stopped)
-- `GET /api/brightness` - Returns current brightness (0-100)
-- `POST /api/brightness/set` - Sets brightness (0-100), broadcasts to all clients
+`GET /`: Serves the web interface
+
+`GET /api/snap/status`: Returns Snapclient status (running/stopped)
+
+`GET /api/brightness`: Returns current brightness (0-100)
+
+`POST /api/brightness/set`: Sets brightness (0-100), broadcasts to all clients
 
 ### WebSocket Endpoint
 
-- `WS /ws` - WebSocket connection for real-time communication
+`WS /ws`: WebSocket connection for real-time communication
 
 ## WebSocket Message Format
 
@@ -215,18 +224,11 @@ The application streams audio from PulseAudio to web browsers using an optimized
 4. **Streaming**: WebRTC tracks with ICE/STUN for NAT traversal
 5. **Silence Detection**: Automatically pauses streaming after 500ms of silence
 
-**Performance**:
-- End-to-end latency: <35ms
-- Packet rate: 50 packets/second
-- Audio format: Opus 48kHz stereo @ 128kbps
-- Multi-client support with persistent audio capture
+**Performance**: End-to-end latency <35ms, packet rate of 50 packets/second, audio format Opus 48kHz stereo @ 128kbps, with multi-client support and persistent audio capture.
 
 ### Snapcast Integration
 
-Optional multi-room audio synchronization:
-- Connect to Snapcast server for synchronized playback across devices
-- Status monitoring via `/api/snap/status` endpoint
-- Controlled via environment variables (`SNAPSERVER_HOST`, `SNAPSERVER_PORT`)
+Optional multi-room audio synchronization. Connect to Snapcast server for synchronized playback across devices, monitor status via `/api/snap/status` endpoint, and control via environment variables (`SNAPSERVER_HOST`, `SNAPSERVER_PORT`).
 
 ## Home Assistant Integration
 
@@ -249,14 +251,9 @@ Optional multi-room audio synchronization:
 
 The integration provides:
 
-- **Light Entity** (`light.smart_clock_display`):
-  - Control brightness (0-100%)
-  - Turn on/off (brightness 0 = off)
-  - Syncs across all connected clients
+**Light Entity** (`light.smart_clock_display`): Control brightness (0-100%), turn on/off (brightness 0 = off), and sync across all connected clients.
 
-- **Sensors**:
-  - `sensor.smart_clock_snapclient`: Snapclient status (Running/Stopped)
-  - `sensor.smart_clock_audio_stream`: Audio stream status (Active/Inactive)
+**Sensors**: `sensor.smart_clock_snapclient` (Snapclient status: Running/Stopped) and `sensor.smart_clock_audio_stream` (Audio stream status: Active/Inactive).
 
 ### Example Automations
 
@@ -292,9 +289,11 @@ automation:
 
 ### Touch Gestures
 
-- **Swipe Left**: Next tab
-- **Swipe Right**: Previous tab
-- **Touch (when brightness = 0)**: Automatically restore brightness to 1%
+**Swipe Left**: Next tab
+
+**Swipe Right**: Previous tab
+
+**Touch (when brightness = 0)**: Automatically restore brightness to 1%
 
 ### Tabs
 
@@ -305,10 +304,7 @@ automation:
 
 ### Auto-Reconnection
 
-- WebSocket reconnects every 5 seconds on disconnect
-- WebRTC reconnects every 3 seconds on failure
-- Automatic cleanup of stale connections
-- No manual intervention required
+WebSocket reconnects every 5 seconds on disconnect, WebRTC reconnects every 3 seconds on failure, with automatic cleanup of stale connections and no manual intervention required.
 
 ## Development
 
@@ -332,110 +328,57 @@ go test ./...
 
 The modular architecture makes it easy to extend:
 
-- **WebSocket handlers**: Add message types in `handleBrightnessMessage()` or create new handlers
-- **HTTP endpoints**: Register new routes in `main()` function
-- **UI components**: Extend tabs in `static/index.html` and `static/app.js`
-- **Home Assistant entities**: Add new platforms in `custom_components/smart_clock/`
+**WebSocket handlers**: Add message types in `handleBrightnessMessage()` or create new handlers
+
+**HTTP endpoints**: Register new routes in `main()` function
+
+**UI components**: Extend tabs in `static/index.html` and `static/app.js`
+
+**Home Assistant entities**: Add new platforms in `custom_components/smart_clock/`
 
 ### Code Structure
 
-**Backend (`main.go`)**:
-- `Hub`: WebSocket client management and broadcasting
-- `AudioMultiplexer`: Multi-client audio distribution
-- `BrightnessState`: Thread-safe brightness state management
-- `streamAudioToTrack()`: WebRTC audio streaming per client
-- `handleBrightnessMessage()`: WebSocket brightness commands
+**Backend (`main.go`)**: `Hub` (WebSocket client management and broadcasting), `AudioMultiplexer` (multi-client audio distribution), `BrightnessState` (thread-safe brightness state management), `streamAudioToTrack()` (WebRTC audio streaming per client), and `handleBrightnessMessage()` (WebSocket brightness commands).
 
-**Frontend (`static/app.js`)**:
-- `SmartClock` class: Main application controller
-- WebRTC connection management with reconnection logic
-- Touch gesture detection and tab navigation
-- Brightness control with device interface integration
+**Frontend (`static/app.js`)**: `SmartClock` class (main application controller), WebRTC connection management with reconnection logic, touch gesture detection and tab navigation, and brightness control with device interface integration.
 
 ## Troubleshooting
 
 ### Audio Issues
 
-**No audio in browser**:
-- Check browser console for WebRTC errors
-- Verify PulseAudio is running: `pactl info`
-- Ensure default sink monitor exists: `pactl list short sources`
-- Check if `parec` command works: `parec --list-devices`
-- Review server logs for Opus encoding errors
+**No audio in browser**: Check browser console for WebRTC errors, verify PulseAudio is running (`pactl info`), ensure default sink monitor exists (`pactl list short sources`), check if `parec` command works (`parec --list-devices`), and review server logs for Opus encoding errors.
 
-**Audio stuttering or choppy**:
-- Check network latency between server and client
-- Verify CPU usage (Opus encoding is CPU-intensive)
-- Ensure sufficient bandwidth for 128kbps stream
-- Review silence detection threshold in `main.go`
+**Audio stuttering or choppy**: Check network latency between server and client, verify CPU usage (Opus encoding is CPU-intensive), ensure sufficient bandwidth for 128kbps stream, and review silence detection threshold in `main.go`.
 
-**Multi-client audio issues**:
-- AudioMultiplexer should handle multiple clients automatically
-- Check server logs for "drainer goroutine" messages
-- Verify all clients receive broadcast messages
+**Multi-client audio issues**: AudioMultiplexer should handle multiple clients automatically. Check server logs for "drainer goroutine" messages and verify all clients receive broadcast messages.
 
 ### Connection Issues
 
-**WebSocket disconnects frequently**:
-- Check network stability
-- Verify firewall allows WebSocket connections
-- Review reconnection logic in browser console
-- Ensure server isn't restarting (check Docker logs)
+**WebSocket disconnects frequently**: Check network stability, verify firewall allows WebSocket connections, review reconnection logic in browser console, and ensure server isn't restarting (check Docker logs).
 
-**WebRTC connection fails**:
-- Verify STUN server accessibility (`stun.l.google.com:19302`)
-- Check NAT/firewall configuration
-- Review ICE candidate exchange in browser console
-- Ensure proper WebRTC signaling via WebSocket
+**WebRTC connection fails**: Verify STUN server accessibility (`stun.l.google.com:19302`), check NAT/firewall configuration, review ICE candidate exchange in browser console, and ensure proper WebRTC signaling via WebSocket.
 
 ### Brightness Control
 
-**Brightness not syncing**:
-- Verify WebSocket connection is active
-- Check `globalHub` is set in server logs
-- Ensure `WebviewKioskBrightnessInterface` is available (Android WebView)
-- Review brightness-update messages in browser console
+**Brightness not syncing**: Verify WebSocket connection is active, check `globalHub` is set in server logs, ensure `WebviewKioskBrightnessInterface` is available (Android WebView), and review brightness-update messages in browser console.
 
-**Home Assistant brightness not working**:
-- Verify Smart Clock URL is accessible from Home Assistant
-- Check `/api/brightness` endpoint returns valid JSON
-- Review Home Assistant logs for HTTP errors
-- Ensure integration is properly configured
+**Home Assistant brightness not working**: Verify Smart Clock URL is accessible from Home Assistant, check `/api/brightness` endpoint returns valid JSON, review Home Assistant logs for HTTP errors, and ensure integration is properly configured.
 
 ### Snapclient Issues
 
-**Snapclient not connecting**:
-- Verify `SNAPSERVER_HOST` and `SNAPSERVER_PORT` environment variables
-- Check if Snapcast server is running
-- Review container logs: `docker-compose logs smartclock`
-- Ensure network connectivity between containers
+**Snapclient not connecting**: Verify `SNAPSERVER_HOST` and `SNAPSERVER_PORT` environment variables, check if Snapcast server is running, review container logs (`docker-compose logs smartclock`), and ensure network connectivity between containers.
 
 ### Display Issues
 
-**UI doesn't fit screen**:
-- Verify display resolution is 800x480
-- Check viewport meta tag in `index.html`
-- Adjust `.container` dimensions in `styles.css`
-- Ensure browser is in fullscreen/kiosk mode
+**UI doesn't fit screen**: Verify display resolution is 800x480, check viewport meta tag in `index.html`, adjust `.container` dimensions in `styles.css`, and ensure browser is in fullscreen/kiosk mode.
 
-**Touch gestures not working**:
-- Verify touch events are registered (check browser console)
-- Ensure swipe threshold (50px) is appropriate for your screen
-- Check if touch events are blocked by other elements
+**Touch gestures not working**: Verify touch events are registered (check browser console), ensure swipe threshold (50px) is appropriate for your screen, and check if touch events are blocked by other elements.
 
 ### Docker Issues
 
-**Container fails to start**:
-- Check Docker logs: `docker-compose logs smartclock`
-- Verify PulseAudio socket is mounted correctly
-- Ensure Opus libraries are installed in container
-- Check CGO is enabled in build
+**Container fails to start**: Check Docker logs (`docker-compose logs smartclock`), verify PulseAudio socket is mounted correctly, ensure Opus libraries are installed in container, and check CGO is enabled in build.
 
-**Audio device not found in container**:
-- Verify PulseAudio socket mount: `/run/pulse/native`
-- Check `PULSE_SERVER` environment variable
-- Ensure host PulseAudio allows network/socket connections
-- Review PulseAudio configuration in `docker-compose.yml`
+**Audio device not found in container**: Verify PulseAudio socket mount (`/run/pulse/native`), check `PULSE_SERVER` environment variable, ensure host PulseAudio allows network/socket connections, and review PulseAudio configuration in `docker-compose.yml`.
 
 ## License
 
