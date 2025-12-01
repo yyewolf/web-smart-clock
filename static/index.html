@@ -1,0 +1,72 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=800, initial-scale=1.0">
+    <title>Smart Clock</title>
+    <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+    <div class="container">
+        <!-- Clock Tab -->
+        <div class="tab-content active" id="clock-tab">
+            <div class="time-display" id="time">--:--:--</div>
+            <div class="date-display" id="date">Loading...</div>
+            <div class="quick-status">
+                <span id="wsStatus" class="status-dot">●</span>
+                <span id="audioStatus" class="status-dot">●</span>
+            </div>
+        </div>
+
+        <!-- Audio Tab -->
+        <div class="tab-content" id="audio-tab">
+            <h2>Audio Streaming</h2>
+            <div class="status-grid">
+                <div class="status-row">
+                    <span class="label">Connection:</span>
+                    <span id="wsStatusText" class="value">Disconnected</span>
+                </div>
+                <div class="status-row">
+                    <span class="label">Snapclient:</span>
+                    <span id="snapStatus" class="value">Unknown</span>
+                </div>
+                <div class="status-row">
+                    <span class="label">Stream:</span>
+                    <span id="audioStatusText" class="value">Inactive</span>
+                </div>
+            </div>
+            <audio id="audioPlayer" controls></audio>
+        </div>
+
+        <!-- Info Tab -->
+        <div class="tab-content" id="info-tab">
+            <div class="info-grid">
+                <div class="widget">
+                    <h3>☀️ Weather</h3>
+                    <div id="weather">--°C</div>
+                </div>
+                <div class="widget">
+                    <h3>📆 Upcoming</h3>
+                    <div id="calendar">No events</div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Settings Tab -->
+        <div class="tab-content" id="settings-tab">
+            <h2>Settings</h2>
+            <div class="settings-container">
+                <div class="setting-item">
+                    <div class="setting-header">
+                        <span class="setting-label">💡 Brightness</span>
+                        <span class="setting-value" id="brightnessValue">--</span>
+                    </div>
+                    <input type="range" id="brightnessSlider" min="0" max="255" value="128" class="slider">
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script src="app.js"></script>
+</body>
+</html>

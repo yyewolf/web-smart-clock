@@ -1,0 +1,274 @@
+* {
+    margin: 0;
+    padding: 0;
+    box-sizing: border-box;
+}
+
+body {
+    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, sans-serif;
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    width: 800px;
+    height: 480px;
+    overflow: hidden;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    touch-action: pan-y; /* Allow vertical scrolling but handle horizontal swipes */
+}
+
+.container {
+    width: 800px;
+    height: 480px;
+    background: rgba(255, 255, 255, 0.95);
+    border-radius: 12px;
+    box-shadow: 0 8px 32px rgba(0, 0, 0, 0.3);
+    display: flex;
+    flex-direction: column;
+    overflow: hidden;
+}
+
+/* Hide tabs */
+.tabs {
+    display: none;
+}
+
+.tab-btn {
+    display: none;
+}
+
+/* Tab Content */
+.tab-content {
+    flex: 1;
+    padding: 40px;
+    overflow-y: auto;
+    display: none;
+    opacity: 0;
+    transition: opacity 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.tab-content.active {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    opacity: 1;
+    animation: slideIn 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+@keyframes slideIn {
+    from {
+        transform: translateX(20px);
+        opacity: 0;
+    }
+    to {
+        transform: translateX(0);
+        opacity: 1;
+    }
+}
+
+/* Clock Tab */
+#clock-tab {
+    text-align: center;
+}
+
+.time-display {
+    font-size: 9rem;
+    font-weight: 700;
+    color: #2d3748;
+    letter-spacing: 0.05em;
+    margin-bottom: 15px;
+    line-height: 1;
+}
+
+.date-display {
+    font-size: 2.2rem;
+    color: #4a5568;
+    font-weight: 300;
+    margin-bottom: 25px;
+}
+
+.quick-status {
+    display: flex;
+    gap: 16px;
+    justify-content: center;
+    align-items: center;
+}
+
+.status-dot {
+    font-size: 28px;
+    color: #cbd5e0;
+    transition: color 0.3s;
+}
+
+.status-dot.connected,
+.status-dot.active {
+    color: #48bb78;
+}
+
+.status-dot.disconnected {
+    color: #f56565;
+}
+
+/* Audio Tab */
+#audio-tab h2 {
+    color: #2d3748;
+    font-size: 1.8rem;
+    margin-bottom: 25px;
+    align-self: flex-start;
+}
+
+.status-grid {
+    width: 100%;
+    background: #f7fafc;
+    border-radius: 10px;
+    padding: 20px;
+    margin-bottom: 25px;
+}
+
+.status-row {
+    display: flex;
+    justify-content: space-between;
+    padding: 12px 0;
+    border-bottom: 1px solid #e2e8f0;
+}
+
+.status-row:last-child {
+    border-bottom: none;
+}
+
+.status-row .label {
+    font-weight: 600;
+    color: #4a5568;
+    font-size: 16px;
+}
+
+.status-row .value {
+    color: #2d3748;
+    font-weight: 500;
+    font-size: 16px;
+}
+
+.status-row .value.connected,
+.status-row .value.active {
+    color: #48bb78;
+}
+
+.status-row .value.disconnected {
+    color: #f56565;
+}
+
+#audioPlayer {
+    width: 100%;
+    height: 60px;
+}
+
+/* Info Tab */
+.info-grid {
+    width: 100%;
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 25px;
+}
+
+.widget {
+    background: #f7fafc;
+    border-radius: 10px;
+    padding: 30px;
+    text-align: center;
+}
+
+.widget h3 {
+    color: #2d3748;
+    font-size: 1.5rem;
+    margin-bottom: 16px;
+}
+
+#weather,
+#calendar {
+    color: #4a5568;
+    font-size: 1.3rem;
+    line-height: 1.6;
+}
+
+/* Settings Tab */
+#settings-tab h2 {
+    color: #2d3748;
+    font-size: 1.8rem;
+    margin-bottom: 25px;
+    align-self: flex-start;
+}
+
+.settings-container {
+    width: 100%;
+}
+
+.setting-item {
+    background: #f7fafc;
+    border-radius: 10px;
+    padding: 30px;
+    margin-bottom: 20px;
+}
+
+.setting-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 20px;
+}
+
+.setting-label {
+    font-size: 1.4rem;
+    font-weight: 600;
+    color: #2d3748;
+}
+
+.setting-value {
+    font-size: 1.4rem;
+    font-weight: 700;
+    color: #667eea;
+}
+
+.slider {
+    width: 100%;
+    height: 12px;
+    border-radius: 6px;
+    background: #e2e8f0;
+    outline: none;
+    -webkit-appearance: none;
+    appearance: none;
+}
+
+.slider::-webkit-slider-thumb {
+    -webkit-appearance: none;
+    appearance: none;
+    width: 32px;
+    height: 32px;
+    border-radius: 50%;
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    cursor: pointer;
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
+}
+
+.slider::-moz-range-thumb {
+    width: 32px;
+    height: 32px;
+    border-radius: 50%;
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    cursor: pointer;
+    border: none;
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
+}
+
+.slider:disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
+}
+
+.slider:disabled::-webkit-slider-thumb {
+    cursor: not-allowed;
+}
+
+.slider:disabled::-moz-range-thumb {
+    cursor: not-allowed;
+}
+

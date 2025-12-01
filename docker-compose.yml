@@ -1,0 +1,24 @@
+version: '3.8'
+
+services:
+  smartclock:
+    build: .
+    # ports:
+    #   - "8080:8080"
+    network_mode: "host"
+    environment:
+      - PORT=8080
+      - SNAPSERVER_HOST=192.168.1.95
+      - SNAPSERVER_PORT=1704
+    restart: unless-stopped
+
+  # snapserver:
+  #   image: jdelacruz/snapcast-server:latest
+  #   ports:
+  #     - "1704:1704"
+  #     - "1705:1705"
+  #   volumes:
+  #     - ./snapserver:/data
+  #   environment:
+  #     - SNAPSERVER_OPTS=--stream.stream=pipe:///tmp/snapfifo?name=default
+  #   restart: unless-stopped
