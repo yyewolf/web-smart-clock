@@ -222,6 +222,18 @@ class SmartClock {
         }
     }
 
+    sendCurrentBrightness() {
+        const slider = document.getElementById('brightnessSlider');
+        if (slider && this.ws && this.ws.readyState === WebSocket.OPEN) {
+            const brightness = parseInt(slider.value);
+            this.ws.send(JSON.stringify({
+                type: 'set-brightness',
+                brightness: brightness
+            }));
+            console.log('Sent current brightness to server:', brightness);
+        }
+    }
+
     connectWebSocket() {
         // Close existing connection if any
         if (this.ws) {
@@ -242,6 +254,9 @@ class SmartClock {
                 clearInterval(this.reconnectInterval);
                 this.reconnectInterval = null;
             }
+            
+            // Send current brightness to server on connect/reconnect
+            this.sendCurrentBrightness();
             
             // Restart audio stream when WebSocket reconnects
             if (!this.peerConnection || this.peerConnection.connectionState !== 'connected') {

@@ -3,6 +3,7 @@ package main
 import (
 	"bufio"
 	"encoding/json"
+	"fmt"
 	"io"
 	"log"
 	"net/http"
@@ -98,7 +99,7 @@ type WebRTCMessage struct {
 
 type BrightnessMessage struct {
 	Type       string `json:"type"`
-	Brightness int    `json:"brightness,omitempty"`
+	Brightness int    `json:"brightness"`
 }
 
 type BrightnessState struct {
@@ -222,19 +223,34 @@ func readPump(hub *Hub, client *Client) {
 			break
 		}
 
-		// Handle WebRTC signaling messages
-		var msg WebRTCMessage
-		if err := json.Unmarshal(message, &msg); err == nil {
-			handleWebRTCMessage(client, &msg)
-		} else {
-			// Try to handle brightness message
+		// Parse message to determine type
+		var typeCheck struct {
+			Type string `json:"type"`
+		}
+		if err := json.Unmarshal(message, &typeCheck); err != nil {
+			log.Printf("Error parsing message type: %v", err)
+			continue
+		}
+
+		// Route based on message type
+		switch typeCheck.Type {
+		case "set-brightness", "get-brightness":
 			var brightnessMsg BrightnessMessage
 			if err := json.Unmarshal(message, &brightnessMsg); err == nil {
 				handleBrightnessMessage(hub, &brightnessMsg)
 			} else {
-				// Broadcast other messages
-				hub.broadcast <- message
+				log.Printf("Error parsing brightness message: %v", err)
 			}
+		case "webrtc-offer", "ice-candidate":
+			var msg WebRTCMessage
+			if err := json.Unmarshal(message, &msg); err == nil {
+				handleWebRTCMessage(client, &msg)
+			} else {
+				log.Printf("Error parsing WebRTC message: %v", err)
+			}
+		default:
+			// Broadcast other messages
+			hub.broadcast <- message
 		}
 	}
 }
@@ -615,6 +631,7 @@ func streamAudioToTrack(track *webrtc.TrackLocalStaticSample, stopAudio <-chan s
 }
 
 func handleBrightnessMessage(hub *Hub, msg *BrightnessMessage) {
+	fmt.Println("Received brightness message:", msg.Type)
 	switch msg.Type {
 	case "set-brightness":
 		brightnessState.mutex.Lock()
