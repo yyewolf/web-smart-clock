@@ -39,6 +39,8 @@ type Hub struct {
 	mutex      sync.RWMutex
 }
 
+var globalHub *Hub
+
 func newHub() *Hub {
 	return &Hub{
 		broadcast:  make(chan []byte, 256),
@@ -105,7 +107,7 @@ type BrightnessState struct {
 }
 
 var brightnessState = &BrightnessState{
-	value: 128, // Default brightness
+	value: 50, // Default brightness (0-100)
 }
 
 // AudioMultiplexer manages audio distribution to multiple clients
@@ -677,8 +679,8 @@ func handleSetBrightness(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	
-	if req.Brightness < 0 || req.Brightness > 255 {
-		http.Error(w, "Brightness must be between 0 and 255", http.StatusBadRequest)
+	if req.Brightness < 0 || req.Brightness > 100 {
+		http.Error(w, "Brightness must be between 0 and 100", http.StatusBadRequest)
 		return
 	}
 	
@@ -688,6 +690,11 @@ func handleSetBrightness(w http.ResponseWriter, r *http.Request) {
 	
 	log.Printf("Brightness set to %d via HTTP", req.Brightness)
 	
+	// Broadcast brightness update to all WebSocket clients
+	if globalHub != nil {
+		broadcastBrightness(globalHub, req.Brightness)
+	}
+	
 	response := map[string]int{"brightness": req.Brightness}
 	w.Header().Set("Content-Type", "application/json")
 	json.NewEncoder(w).Encode(response)
@@ -695,6 +702,7 @@ func handleSetBrightness(w http.ResponseWriter, r *http.Request) {
 
 func main() {
 	hub := newHub()
+	globalHub = hub // Store hub globally for HTTP handlers
 	go hub.run()
 	go broadcastTime(hub)
 

@@ -79,6 +79,9 @@ class SmartClock {
         container.addEventListener('touchstart', (e) => {
             touchStartX = e.changedTouches[0].screenX;
             touchStartY = e.changedTouches[0].screenY;
+            
+            // Check if brightness is 0, if so set it to 1
+            this.checkAndRestoreBrightness();
         }, { passive: true });
         
         container.addEventListener('touchend', (e) => {
@@ -86,6 +89,39 @@ class SmartClock {
             touchEndY = e.changedTouches[0].screenY;
             this.handleSwipe(touchStartX, touchEndX, touchStartY, touchEndY);
         }, { passive: true });
+    }
+    
+    checkAndRestoreBrightness() {
+        // Get current brightness from slider
+        const slider = document.getElementById('brightnessSlider');
+        if (slider && parseInt(slider.value) === 0) {
+            const brightness = 1;
+            slider.value = brightness;
+            
+            const valueDisplay = document.getElementById('brightnessValue');
+            if (valueDisplay) {
+                valueDisplay.textContent = brightness + '%';
+            }
+            
+            // Update device brightness
+            if (window.WebviewKioskBrightnessInterface) {
+                try {
+                    const deviceBrightness = Math.round((brightness / 100) * 255);
+                    window.WebviewKioskBrightnessInterface.setBrightness(deviceBrightness);
+                    console.log('Restored brightness from 0 to:', deviceBrightness, '(', brightness, '%)');
+                } catch (error) {
+                    console.error('Error restoring device brightness:', error);
+                }
+            }
+            
+            // Send to server to sync across all clients
+            if (this.ws && this.ws.readyState === WebSocket.OPEN) {
+                this.ws.send(JSON.stringify({
+                    type: 'set-brightness',
+                    brightness: brightness
+                }));
+            }
+        }
     }
 
     handleSwipe(startX, endX, startY, endY) {
@@ -111,43 +147,78 @@ class SmartClock {
         const slider = document.getElementById('brightnessSlider');
         const valueDisplay = document.getElementById('brightnessValue');
         
+        // Fetch current brightness from server
+        this.fetchBrightness();
+        
         // Check if brightness interface is available
         if (window.WebviewKioskBrightnessInterface) {
-            // Get current brightness
-            try {
-                const currentBrightness = window.WebviewKioskBrightnessInterface.getBrightness();
-                slider.value = currentBrightness;
-                valueDisplay.textContent = Math.round((currentBrightness / 255) * 100) + '%';
-            } catch (e) {
-                console.error('Error getting brightness:', e);
-                valueDisplay.textContent = 'N/A';
-            }
-            
             // Handle brightness changes
             slider.addEventListener('input', (e) => {
-                const value = parseInt(e.target.value);
-                const percentage = Math.round((value / 255) * 100);
-                valueDisplay.textContent = percentage + '%';
+                const brightness = parseInt(e.target.value);
+                valueDisplay.textContent = brightness + '%';
                 
                 try {
-                    window.WebviewKioskBrightnessInterface.setBrightness(value);
-                    
-                    // Also send to server to sync across all clients
-                    if (this.ws && this.ws.readyState === WebSocket.OPEN) {
-                        this.ws.send(JSON.stringify({
-                            type: 'set-brightness',
-                            brightness: value
-                        }));
-                    }
+                    // Convert 0-100 to 0-255 for device interface
+                    const deviceBrightness = Math.round((brightness / 100) * 255);
+                    window.WebviewKioskBrightnessInterface.setBrightness(deviceBrightness);
+                    console.log('Set device brightness to:', deviceBrightness, '(', brightness, '%)');
                 } catch (error) {
-                    console.error('Error setting brightness:', error);
+                    console.error('Error setting device brightness:', error);
+                }
+                
+                // Send to server to sync across all clients
+                if (this.ws && this.ws.readyState === WebSocket.OPEN) {
+                    this.ws.send(JSON.stringify({
+                        type: 'set-brightness',
+                        brightness: brightness
+                    }));
                 }
             });
         } else {
-            // Brightness control not available
-            slider.disabled = true;
-            valueDisplay.textContent = 'Not Available';
+            // Brightness control not available, but still allow control via server
+            slider.addEventListener('input', (e) => {
+                const brightness = parseInt(e.target.value);
+                valueDisplay.textContent = brightness + '%';
+                
+                // Send to server to sync across all clients
+                if (this.ws && this.ws.readyState === WebSocket.OPEN) {
+                    this.ws.send(JSON.stringify({
+                        type: 'set-brightness',
+                        brightness: brightness
+                    }));
+                }
+            });
             console.warn('WebviewKioskBrightnessInterface not available');
+        }
+    }
+
+    async fetchBrightness() {
+        try {
+            const response = await fetch('/api/brightness');
+            const data = await response.json();
+            const brightness = data.brightness;
+            
+            const slider = document.getElementById('brightnessSlider');
+            const valueDisplay = document.getElementById('brightnessValue');
+            
+            if (slider && valueDisplay) {
+                slider.value = brightness;
+                valueDisplay.textContent = brightness + '%';
+                
+                // Also set device brightness if available
+                if (window.WebviewKioskBrightnessInterface) {
+                    try {
+                        // Convert 0-100 to 0-255 for device interface
+                        const deviceBrightness = Math.round((brightness / 100) * 255);
+                        window.WebviewKioskBrightnessInterface.setBrightness(deviceBrightness);
+                        console.log('Initialized device brightness to:', deviceBrightness, '(', brightness, '%)');
+                    } catch (error) {
+                        console.error('Error initializing device brightness:', error);
+                    }
+                }
+            }
+        } catch (error) {
+            console.error('Error fetching brightness:', error);
         }
     }
 
@@ -472,18 +543,21 @@ class SmartClock {
     }
 
     handleBrightnessUpdate(brightness) {
+        console.log('Received brightness update:', brightness);
         const slider = document.getElementById('brightnessSlider');
         const valueDisplay = document.getElementById('brightnessValue');
         
         if (slider && valueDisplay) {
             slider.value = brightness;
-            const percentage = Math.round((brightness / 255) * 100);
-            valueDisplay.textContent = percentage + '%';
+            valueDisplay.textContent = brightness + '%';
             
             // Update device brightness if available
             if (window.WebviewKioskBrightnessInterface) {
                 try {
-                    window.WebviewKioskBrightnessInterface.setBrightness(brightness);
+                    // Convert 0-100 to 0-255 for device interface
+                    const deviceBrightness = Math.round((brightness / 100) * 255);
+                    window.WebviewKioskBrightnessInterface.setBrightness(deviceBrightness);
+                    console.log('Updated device brightness to:', deviceBrightness, '(', brightness, '%)');
                 } catch (error) {
                     console.error('Error updating device brightness:', error);
                 }
