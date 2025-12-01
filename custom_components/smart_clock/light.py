@@ -39,13 +39,14 @@ class SmartClockBrightness(LightEntity):
         self._attr_unique_id = f"smart_clock_{host}_{port}_brightness"
         self._attr_color_mode = ColorMode.BRIGHTNESS
         self._attr_supported_color_modes = {ColorMode.BRIGHTNESS}
-        self._brightness = 128
+        self._brightness = 128  # Home Assistant uses 0-255, we'll convert to 0-100
         self._attr_is_on = True
 
     @property
     def brightness(self) -> int:
         """Return the brightness of this light between 0..255."""
-        return self._brightness
+        # Convert from 0-100 (backend) to 0-255 (Home Assistant)
+        return int((self._brightness / 100) * 255)
 
     @property
     def device_info(self):
@@ -59,7 +60,9 @@ class SmartClockBrightness(LightEntity):
 
     async def async_turn_on(self, **kwargs) -> None:
         """Turn on the light."""
-        brightness = kwargs.get(ATTR_BRIGHTNESS, 255)
+        brightness_255 = kwargs.get(ATTR_BRIGHTNESS, 255)
+        # Convert from Home Assistant's 0-255 to backend's 0-100
+        brightness_100 = int((brightness_255 / 255) * 100)
         
         url = f"http://{self._host}:{self._port}/api/brightness/set"
         session = async_get_clientsession(self.hass)
@@ -67,11 +70,11 @@ class SmartClockBrightness(LightEntity):
         try:
             async with session.post(
                 url,
-                json={"brightness": brightness},
+                json={"brightness": brightness_100},
                 timeout=aiohttp.ClientTimeout(total=10)
             ) as response:
                 if response.status == 200:
-                    self._brightness = brightness
+                    self._brightness = brightness_100  # Store as 0-100
                     self._attr_is_on = True
                 else:
                     _LOGGER.error("Failed to set brightness: %s", response.status)
@@ -109,7 +112,8 @@ class SmartClockBrightness(LightEntity):
             ) as response:
                 if response.status == 200:
                     data = await response.json()
-                    self._brightness = data.get("brightness", 128)
+                    # Backend returns 0-100, store as-is
+                    self._brightness = data.get("brightness", 50)
                     self._attr_is_on = self._brightness > 0
                 else:
                     _LOGGER.error("Failed to get brightness: %s", response.status)
