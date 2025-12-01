@@ -312,6 +312,20 @@ func handleSnapStatus(w http.ResponseWriter, r *http.Request) {
 	json.NewEncoder(w).Encode(status)
 }
 
+func handleConfig(w http.ResponseWriter, r *http.Request) {
+	w.Header().Set("Content-Type", "application/json")
+	
+	timezone := os.Getenv("TZ")
+	if timezone == "" {
+		timezone = "UTC"
+	}
+	
+	config := map[string]string{
+		"timezone": timezone,
+	}
+	json.NewEncoder(w).Encode(config)
+}
+
 func handleWebRTCMessage(client *Client, msg *WebRTCMessage) {
 	switch msg.Type {
 	case "webrtc-offer":
@@ -734,6 +748,9 @@ func main() {
 
 	// Snapclient status endpoint
 	http.HandleFunc("/api/snap/status", handleSnapStatus)
+
+	// Config endpoint
+	http.HandleFunc("/api/config", handleConfig)
 
 	// Brightness endpoints
 	http.HandleFunc("/api/brightness", handleGetBrightness)

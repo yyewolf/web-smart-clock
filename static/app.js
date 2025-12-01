@@ -8,6 +8,7 @@ class SmartClock {
         this.isWebRTCConnecting = false;
         this.currentTab = 0;
         this.tabs = ['clock', 'audio', 'settings', 'info'];
+        this.timezone = 'UTC'; // Default timezone
         
         this.init();
     }
@@ -16,6 +17,7 @@ class SmartClock {
         this.setupTabs();
         this.setupSwipeGestures();
         this.setupBrightnessControl();
+        this.fetchConfig(); // Fetch timezone configuration
         this.startLocalClock();
         this.connectWebSocket();
         this.checkSnapclientStatus();
@@ -31,14 +33,14 @@ class SmartClock {
         const updateTime = () => {
             const now = new Date();
             
-            // Format time as HH:MM:SS
-            const hours = String(now.getHours()).padStart(2, '0');
-            const minutes = String(now.getMinutes()).padStart(2, '0');
-            const seconds = String(now.getSeconds()).padStart(2, '0');
+            // Format time as HH:MM:SS in the configured timezone
+            const hours = String(now.toLocaleString('en-US', { hour: '2-digit', hour12: false, timeZone: this.timezone }).split(':')[0]).padStart(2, '0');
+            const minutes = String(now.toLocaleString('en-US', { minute: '2-digit', timeZone: this.timezone })).padStart(2, '0');
+            const seconds = String(now.toLocaleString('en-US', { second: '2-digit', timeZone: this.timezone })).padStart(2, '0');
             const timeString = `${hours}:${minutes}:${seconds}`;
             
-            // Format date
-            const options = { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' };
+            // Format date in the configured timezone
+            const options = { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric', timeZone: this.timezone };
             const dateString = now.toLocaleDateString('en-US', options);
             
             document.getElementById('time').textContent = timeString;
@@ -50,6 +52,18 @@ class SmartClock {
         
         // Update every second
         setInterval(updateTime, 1000);
+    }
+
+    async fetchConfig() {
+        try {
+            const response = await fetch('/api/config');
+            const data = await response.json();
+            this.timezone = data.timezone || 'UTC';
+            console.log('Timezone set to:', this.timezone);
+        } catch (error) {
+            console.error('Error fetching config:', error);
+            this.timezone = 'UTC';
+        }
     }
 
     setupTabs() {

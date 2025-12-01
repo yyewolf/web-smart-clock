@@ -56,6 +56,7 @@ EXPOSE 8080
 ENV PORT=8080
 ENV SNAPSERVER_HOST=snapserver
 ENV SNAPSERVER_PORT=1704
+ENV TZ=UTC
 
 # Switch to non-root user
 USER appuser
