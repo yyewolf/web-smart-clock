@@ -71,7 +71,7 @@ RUN echo '#!/bin/sh' > /start.sh && \
     echo 'pactl load-module module-null-sink sink_name=snapcast_sink sink_properties=device.description="Snapcast_Sink"' >> /start.sh && \
     echo 'pactl set-default-sink snapcast_sink' >> /start.sh && \
     echo 'echo "Starting snapclient with PulseAudio output..."' >> /start.sh && \
-    echo 'snapclient -h ${SNAPSERVER_HOST} -p ${SNAPSERVER_PORT} --player pulse &' >> /start.sh && \
+    echo 'snapclient --hostID ${HOST_ID} -h ${SNAPSERVER_HOST} -p ${SNAPSERVER_PORT} --player pulse &' >> /start.sh && \
     echo 'sleep 3' >> /start.sh && \
     echo 'echo "Starting smart clock server..."' >> /start.sh && \
     echo 'exec /app/smartclock' >> /start.sh && \
