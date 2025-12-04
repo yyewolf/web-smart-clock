@@ -25,11 +25,15 @@ var upgrader = websocket.Upgrader{
 }
 
 type Client struct {
-	conn           *websocket.Conn
-	send           chan []byte
-	peerConnection *webrtc.PeerConnection
-	audioTrack     *webrtc.TrackLocalStaticSample
-	stopAudio      chan struct{} // Signal to stop audio streaming
+	conn                *websocket.Conn
+	send                chan []byte
+	peerConnection      *webrtc.PeerConnection
+	audioTrack          *webrtc.TrackLocalStaticSample
+	stopAudio           chan struct{} // Signal to stop audio streaming
+	webrtcConnected     bool
+	lastRefresh         time.Time
+	refreshCooldown     time.Duration
+	webrtcCheckInterval *time.Ticker
 }
 
 type Hub struct {
@@ -105,6 +109,10 @@ type BrightnessMessage struct {
 type TabMessage struct {
 	Type string `json:"type"`
 	Tab  string `json:"tab"`
+}
+
+type RefreshMessage struct {
+	Type string `json:"type"`
 }
 
 type BrightnessState struct {
@@ -203,9 +211,12 @@ func handleWebSocket(hub *Hub, w http.ResponseWriter, r *http.Request) {
 	}
 
 	client := &Client{
-		conn:      conn,
-		send:      make(chan []byte, 256),
-		stopAudio: make(chan struct{}),
+		conn:            conn,
+		send:            make(chan []byte, 256),
+		stopAudio:       make(chan struct{}),
+		webrtcConnected: false,
+		lastRefresh:     time.Time{},
+		refreshCooldown: 2 * time.Minute,
 	}
 	hub.register <- client
 
@@ -261,6 +272,22 @@ func readPump(hub *Hub, client *Client) {
 				handleTabMessage(hub, &tabMsg)
 			} else {
 				log.Printf("Error parsing tab message: %v", err)
+			}
+		case "refresh":
+			var refreshMsg RefreshMessage
+			if err := json.Unmarshal(message, &refreshMsg); err == nil {
+				handleRefreshMessage(client)
+			} else {
+				log.Printf("Error parsing refresh message: %v", err)
+			}
+		case "webrtc-connected":
+			client.webrtcConnected = true
+			log.Println("Client WebRTC connected")
+		case "webrtc-disconnected":
+			if client.webrtcConnected {
+				log.Println("Client WebRTC disconnected, initiating refresh")
+				client.webrtcConnected = false
+				go handleAutoRefresh(client)
 			}
 		case "webrtc-offer", "ice-candidate":
 			var msg WebRTCMessage
@@ -737,6 +764,47 @@ func broadcastTab(hub *Hub, tab string) {
 	hub.broadcast <- data
 }
 
+func handleRefreshMessage(client *Client) {
+	// Check cooldown period
+	if !client.lastRefresh.IsZero() {
+		timeSinceLastRefresh := time.Since(client.lastRefresh)
+		if timeSinceLastRefresh < client.refreshCooldown {
+			log.Printf("Refresh requested but in cooldown (%.0fs remaining)", (client.refreshCooldown - timeSinceLastRefresh).Seconds())
+			return
+		}
+	}
+	
+	client.lastRefresh = time.Now()
+	log.Println("Sending refresh command to client")
+	
+	msg := RefreshMessage{
+		Type: "refresh",
+	}
+	
+	data, err := json.Marshal(msg)
+	if err != nil {
+		log.Println("Error marshaling refresh message:", err)
+		return
+	}
+	
+	select {
+	case client.send <- data:
+		log.Println("Refresh command sent")
+	default:
+		log.Println("Failed to send refresh command (channel full)")
+	}
+}
+
+func handleAutoRefresh(client *Client) {
+	// Wait a bit to see if WebRTC reconnects naturally
+	time.Sleep(5 * time.Second)
+	
+	if !client.webrtcConnected {
+		log.Println("WebRTC still disconnected after 5s, triggering auto-refresh")
+		handleRefreshMessage(client)
+	}
+}
+
 func handleGetBrightness(w http.ResponseWriter, r *http.Request) {
 	if r.Method != http.MethodGet {
 		http.Error(w, "Method not allowed", http.StatusMethodNotAllowed)
@@ -841,6 +909,27 @@ func handleSetTab(w http.ResponseWriter, r *http.Request) {
 	json.NewEncoder(w).Encode(response)
 }
 
+func handleRefresh(w http.ResponseWriter, r *http.Request) {
+	if r.Method != http.MethodPost {
+		http.Error(w, "Method not allowed", http.StatusMethodNotAllowed)
+		return
+	}
+	
+	log.Println("Refresh requested via HTTP")
+	
+	// Send refresh to all connected clients
+	if globalHub != nil {
+		globalHub.mutex.RLock()
+		for client := range globalHub.clients {
+			go handleRefreshMessage(client)
+		}
+		globalHub.mutex.RUnlock()
+	}
+	
+	w.Header().Set("Content-Type", "application/json")
+	json.NewEncoder(w).Encode(map[string]string{"status": "refresh sent"})
+}
+
 func main() {
 	hub := newHub()
 	globalHub = hub // Store hub globally for HTTP handlers
@@ -869,6 +958,9 @@ func main() {
 	// Tab endpoints
 	http.HandleFunc("/api/tab", handleGetTab)
 	http.HandleFunc("/api/tab/set", handleSetTab)
+
+	// Refresh endpoint
+	http.HandleFunc("/api/refresh", handleRefresh)
 
 	port := os.Getenv("PORT")
 	if port == "" {

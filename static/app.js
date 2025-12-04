@@ -300,6 +300,8 @@ class SmartClock {
                     this.handleBrightnessUpdate(data.brightness);
                 } else if (data.type === 'tab-update') {
                     this.handleTabUpdate(data.tab);
+                } else if (data.type === 'refresh') {
+                    this.handleRefresh();
                 }
                 // Removed clock update handling - using local time now
             } catch (e) {
@@ -442,17 +444,29 @@ class SmartClock {
                         clearInterval(this.webrtcReconnectInterval);
                         this.webrtcReconnectInterval = null;
                     }
+                    // Notify backend of WebRTC connection
+                    if (this.ws && this.ws.readyState === WebSocket.OPEN) {
+                        this.ws.send(JSON.stringify({ type: 'webrtc-connected' }));
+                    }
                 } else if (this.peerConnection.connectionState === 'failed') {
                     console.log('WebRTC connection failed, attempting to reconnect...');
                     this.updateStatus('audioStatus', 'Failed', false);
                     this.updateStatusText('audioStatusText', 'Failed', false);
                     this.isWebRTCConnecting = false;
+                    // Notify backend of WebRTC disconnection
+                    if (this.ws && this.ws.readyState === WebSocket.OPEN) {
+                        this.ws.send(JSON.stringify({ type: 'webrtc-disconnected' }));
+                    }
                     this.scheduleWebRTCReconnect();
                 } else if (this.peerConnection.connectionState === 'disconnected') {
                     console.log('WebRTC disconnected, attempting to reconnect...');
                     this.updateStatus('audioStatus', 'Disconnected', false);
                     this.updateStatusText('audioStatusText', 'Disconnected', false);
                     this.isWebRTCConnecting = false;
+                    // Notify backend of WebRTC disconnection
+                    if (this.ws && this.ws.readyState === WebSocket.OPEN) {
+                        this.ws.send(JSON.stringify({ type: 'webrtc-disconnected' }));
+                    }
                     this.scheduleWebRTCReconnect();
                 }
             };
@@ -611,6 +625,12 @@ class SmartClock {
         if (tabIndex !== -1 && tabIndex !== this.currentTab) {
             this.switchToTab(tabIndex);
         }
+    }
+
+    handleRefresh() {
+        console.log('Received refresh command from server');
+        // Reload the page
+        window.location.reload();
     }
 }
 
