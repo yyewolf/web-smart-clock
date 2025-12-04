@@ -314,28 +314,6 @@ func writePump(client *Client) {
 	}
 }
 
-func broadcastTime(hub *Hub) {
-	ticker := time.NewTicker(1 * time.Second)
-	defer ticker.Stop()
-
-	for range ticker.C {
-		now := time.Now()
-		clockData := ClockData{
-			Time:      now.Format("15:04:05"),
-			Date:      now.Format("Monday, January 2, 2006"),
-			Timestamp: now.Unix(),
-		}
-
-		data, err := json.Marshal(clockData)
-		if err != nil {
-			log.Println("JSON marshal error:", err)
-			continue
-		}
-
-		hub.broadcast <- data
-	}
-}
-
 func getSnapclientStatus() (map[string]interface{}, error) {
 	// Check if snapclient is running
 	cmd := exec.Command("pgrep", "-x", "snapclient")
@@ -934,7 +912,6 @@ func main() {
 	hub := newHub()
 	globalHub = hub // Store hub globally for HTTP handlers
 	go hub.run()
-	go broadcastTime(hub)
 
 	// Serve static files
 	fs := http.FileServer(http.Dir("./static"))
