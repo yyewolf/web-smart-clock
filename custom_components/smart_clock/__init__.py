@@ -7,7 +7,7 @@ from homeassistant.const import Platform
 _LOGGER = logging.getLogger(__name__)
 
 DOMAIN = "smart_clock"
-PLATFORMS = [Platform.LIGHT, Platform.SENSOR]
+PLATFORMS = [Platform.LIGHT, Platform.SENSOR, Platform.SELECT]
 
 async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
     """Set up Smart Clock from a config entry."""

@@ -81,6 +81,15 @@ class SmartClock {
         
         // Add active class to the selected content
         document.getElementById(`${tabName}-tab`).classList.add('active');
+        
+        // Send tab change to server
+        if (this.ws && this.ws.readyState === WebSocket.OPEN) {
+            this.ws.send(JSON.stringify({
+                type: 'set-tab',
+                tab: tabName
+            }));
+            console.log('Tab changed to:', tabName);
+        }
     }
 
     setupSwipeGestures() {
@@ -289,6 +298,8 @@ class SmartClock {
                     this.handleICECandidate(data.candidate);
                 } else if (data.type === 'brightness-update') {
                     this.handleBrightnessUpdate(data.brightness);
+                } else if (data.type === 'tab-update') {
+                    this.handleTabUpdate(data.tab);
                 }
                 // Removed clock update handling - using local time now
             } catch (e) {
@@ -591,6 +602,14 @@ class SmartClock {
                     console.error('Error updating device brightness:', error);
                 }
             }
+        }
+    }
+
+    handleTabUpdate(tab) {
+        console.log('Received tab update:', tab);
+        const tabIndex = this.tabs.indexOf(tab);
+        if (tabIndex !== -1 && tabIndex !== this.currentTab) {
+            this.switchToTab(tabIndex);
         }
     }
 }

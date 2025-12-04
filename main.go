@@ -102,13 +102,27 @@ type BrightnessMessage struct {
 	Brightness int    `json:"brightness"`
 }
 
+type TabMessage struct {
+	Type string `json:"type"`
+	Tab  string `json:"tab"`
+}
+
 type BrightnessState struct {
 	value int
 	mutex sync.RWMutex
 }
 
+type TabState struct {
+	value string
+	mutex sync.RWMutex
+}
+
 var brightnessState = &BrightnessState{
 	value: 50, // Default brightness (0-100)
+}
+
+var tabState = &TabState{
+	value: "clock", // Default tab: clock, audio, settings, info
 }
 
 // AudioMultiplexer manages audio distribution to multiple clients
@@ -240,6 +254,13 @@ func readPump(hub *Hub, client *Client) {
 				handleBrightnessMessage(hub, &brightnessMsg)
 			} else {
 				log.Printf("Error parsing brightness message: %v", err)
+			}
+		case "set-tab", "get-tab":
+			var tabMsg TabMessage
+			if err := json.Unmarshal(message, &tabMsg); err == nil {
+				handleTabMessage(hub, &tabMsg)
+			} else {
+				log.Printf("Error parsing tab message: %v", err)
 			}
 		case "webrtc-offer", "ice-candidate":
 			var msg WebRTCMessage
@@ -680,6 +701,42 @@ func broadcastBrightness(hub *Hub, brightness int) {
 	hub.broadcast <- data
 }
 
+func handleTabMessage(hub *Hub, msg *TabMessage) {
+	fmt.Println("Received tab message:", msg.Type)
+	switch msg.Type {
+	case "set-tab":
+		tabState.mutex.Lock()
+		tabState.value = msg.Tab
+		tabState.mutex.Unlock()
+		log.Printf("Tab set to %s", msg.Tab)
+		
+		// Broadcast tab update to all clients
+		broadcastTab(hub, msg.Tab)
+	case "get-tab":
+		tabState.mutex.RLock()
+		tab := tabState.value
+		tabState.mutex.RUnlock()
+		
+		// Send tab to requesting client (broadcast to all for simplicity)
+		broadcastTab(hub, tab)
+	}
+}
+
+func broadcastTab(hub *Hub, tab string) {
+	msg := TabMessage{
+		Type: "tab-update",
+		Tab:  tab,
+	}
+	
+	data, err := json.Marshal(msg)
+	if err != nil {
+		log.Println("Error marshaling tab message:", err)
+		return
+	}
+	
+	hub.broadcast <- data
+}
+
 func handleGetBrightness(w http.ResponseWriter, r *http.Request) {
 	if r.Method != http.MethodGet {
 		http.Error(w, "Method not allowed", http.StatusMethodNotAllowed)
@@ -731,6 +788,59 @@ func handleSetBrightness(w http.ResponseWriter, r *http.Request) {
 	json.NewEncoder(w).Encode(response)
 }
 
+func handleGetTab(w http.ResponseWriter, r *http.Request) {
+	if r.Method != http.MethodGet {
+		http.Error(w, "Method not allowed", http.StatusMethodNotAllowed)
+		return
+	}
+	
+	tabState.mutex.RLock()
+	tab := tabState.value
+	tabState.mutex.RUnlock()
+	
+	response := map[string]string{"tab": tab}
+	w.Header().Set("Content-Type", "application/json")
+	json.NewEncoder(w).Encode(response)
+}
+
+func handleSetTab(w http.ResponseWriter, r *http.Request) {
+	if r.Method != http.MethodPost {
+		http.Error(w, "Method not allowed", http.StatusMethodNotAllowed)
+		return
+	}
+	
+	var req struct {
+		Tab string `json:"tab"`
+	}
+	
+	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
+		http.Error(w, "Invalid request body", http.StatusBadRequest)
+		return
+	}
+	
+	// Validate tab value
+	validTabs := map[string]bool{"clock": true, "audio": true, "settings": true, "info": true}
+	if !validTabs[req.Tab] {
+		http.Error(w, "Tab must be one of: clock, audio, settings, info", http.StatusBadRequest)
+		return
+	}
+	
+	tabState.mutex.Lock()
+	tabState.value = req.Tab
+	tabState.mutex.Unlock()
+	
+	log.Printf("Tab set to %s via HTTP", req.Tab)
+	
+	// Broadcast tab update to all WebSocket clients
+	if globalHub != nil {
+		broadcastTab(globalHub, req.Tab)
+	}
+	
+	response := map[string]string{"tab": req.Tab}
+	w.Header().Set("Content-Type", "application/json")
+	json.NewEncoder(w).Encode(response)
+}
+
 func main() {
 	hub := newHub()
 	globalHub = hub // Store hub globally for HTTP handlers
@@ -755,6 +865,10 @@ func main() {
 	// Brightness endpoints
 	http.HandleFunc("/api/brightness", handleGetBrightness)
 	http.HandleFunc("/api/brightness/set", handleSetBrightness)
+
+	// Tab endpoints
+	http.HandleFunc("/api/tab", handleGetTab)
+	http.HandleFunc("/api/tab/set", handleSetTab)
 
 	port := os.Getenv("PORT")
 	if port == "" {
